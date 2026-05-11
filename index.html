@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>blog</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark-dimmed.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css"
+      media="(prefers-color-scheme: light)">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>▸</text></svg>">
+</head>
+<body>
+<header class="site-header">
+  <a href="" class="site-title" onclick="goHome(event)">emir's blog</a>
+  <p class="site-tagline">systems · virtualization · engineering</p>
+</header>
+<nav id="nav"></nav>
+<main id="content"></main>
+<footer>© 2026</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+
+const calloutRenderer = {
+  blockquote(quote) {
+    const m = quote.match(/^\s*<p>\[!(INFO|WARNING|CRITICAL|NOTE|TIP)\]([^]*?)<\/p>/i);
+    if (!m) return false;
+    const type = m[1].toLowerCase();
+    const firstLine = m[2].trim();
+    const rest = quote.slice(m[0].length);
+    const body = (firstLine ? '<p>' + firstLine + '</p>' : '') + rest;
+    return '<aside class="callout callout-' + type + '">'
+      + '<div class="callout-title">' + type + '</div>'
+      + '<div class="callout-body">' + body + '</div></aside>';
+  }
+};
+marked.use({ renderer: calloutRenderer });
+
+function goHome(e) { e.preventDefault(); location.hash = ''; }
+
+async function loadPosts() {
+  const r = await fetch('posts.json');
+  return r.json();
+}
+
+async function loadMarkdown(slug) {
+  const r = await fetch('posts/' + slug + '.md');
+  if (!r.ok) return null;
+  let text = await r.text();
+  if (text.startsWith('---')) {
+    const end = text.indexOf('---', 3);
+    if (end !== -1) text = text.slice(end + 3);
+  }
+  return marked.parse(text);
+}
+
+function renderIndex(posts) {
+  document.getElementById('nav').innerHTML = '';
+  let h = '';
+  for (const p of posts) {
+    const desc = p.description
+      ? '<p class="post-desc">' + p.description + '</p>' : '';
+    const tags = (p.tags || [])
+      .map(t => '<span class="tag">' + t + '</span>').join(' ');
+    h += '<article class="post-entry">'
+      + '<time>' + p.date + '</time>'
+      + '<div><a href="#' + p.slug + '">' + p.title + '</a>'
+      + desc
+      + '<div class="tags">' + tags + '</div></div>'
+      + '</article>';
+  }
+  document.getElementById('content').innerHTML = h || '<p class="empty">No posts yet.</p>';
+  document.title = "emir's blog";
+  window.scrollTo(0, 0);
+}
+
+async function renderPost(slug, posts) {
+  const meta = posts.find(p => p.slug === slug);
+  if (!meta) { renderIndex(posts); return; }
+
+  const html = await loadMarkdown(slug);
+  if (!html) { renderIndex(posts); return; }
+
+  const tags = (meta.tags || [])
+    .map(t => '<span class="tag">' + t + '</span>').join(' ');
+
+  document.getElementById('nav').innerHTML =
+    '<a href="#" class="back" onclick="goHome(event)">← posts</a>';
+  document.getElementById('content').innerHTML =
+    '<article class="post"><h1>' + meta.title + '</h1>'
+    + '<div class="post-meta"><time>' + meta.date + '</time>'
+    + '<div class="tags">' + tags + '</div></div>'
+    + '<div class="post-body">' + html + '</div></article>';
+
+  document.title = meta.title + " — emir's blog";
+  document.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el));
+  window.scrollTo(0, 0);
+}
+
+async function route() {
+  const posts = await loadPosts();
+  const slug = location.hash.slice(1);
+  if (slug) renderPost(slug, posts);
+  else renderIndex(posts);
+}
+
+window.addEventListener('hashchange', route);
+route();
+
+</script>
+</body>
+</html>
