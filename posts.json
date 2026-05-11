@@ -1,1 +1,9 @@
-[]
+[
+  {
+    "slug": "architecture-as-mitigation",
+    "title": "Architecture as Mitigation",
+    "date": "2026-05-11",
+    "tags": ["security", "linux"],
+    "description": "Two recent kernel LPE bugs, four independent architectural reasons they were non-events, and what that says about design as defense."
+  }
+]
