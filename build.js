@@ -5,6 +5,7 @@ const { marked } = require('marked');
 const hljs = require('highlight.js');
 
 const SITE = 'https://blog.ljebu.com';
+const SITE_NAME = "emir's blog";
 const root = __dirname;
 const out = path.join(root, 'dist');
 
@@ -106,13 +107,31 @@ function escapeHtml(s) {
 function layout({ title, description, canonical, body, isPost }) {
   const desc = description ? `<meta name="description" content="${escapeHtml(description)}">\n` : '';
   const canon = canonical ? `<link rel="canonical" href="${canonical}">\n` : '';
+  const ogUrl = canonical || SITE;
+  const ogType = isPost ? 'article' : 'website';
+  const ogDesc = description
+    ? `<meta property="og:description" content="${escapeHtml(description)}">\n`
+    : '';
+  const og = `<meta property="og:site_name" content="${escapeHtml(SITE_NAME)}">
+<meta property="og:title" content="${escapeHtml(title)}">
+<meta property="og:type" content="${ogType}">
+<meta property="og:url" content="${ogUrl}">
+${ogDesc}`;
+  const jsonLd = !isPost
+    ? `<script type="application/ld+json">${JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: SITE_NAME,
+        url: SITE + '/',
+      })}</script>\n`
+    : '';
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)}</title>
-${desc}${canon}<link rel="stylesheet" href="/style.css">
+${desc}${canon}${og}${jsonLd}<link rel="stylesheet" href="/style.css">
 <link rel="stylesheet" href="${HLJS_DARK}">
 <link rel="stylesheet" href="${HLJS_LIGHT}" media="(prefers-color-scheme: light)">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>▸</text></svg>">
